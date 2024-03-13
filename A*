@@ -1,0 +1,265 @@
+import random
+import time
+#import numpy as np
+from copy import deepcopy
+from heapq import heappop, heappush, heapify
+
+NUM_ROWS = 6
+NUM_COLS = 7
+
+def create_board(rows, columns):
+    return [['-' for _ in range(columns)] for _ in range(rows)]
+
+def print_board(board):
+    for row in board:
+        print("|", end="")
+        for cell in row:
+            print(cell, end="|")
+        print()
+    print("-" * (len(board[0]) * 2 + 1))
+
+def drop_piece(board, column, player):
+    for row in range(len(board)-1, -1, -1):
+        if board[row][column] == '-':
+            board[row][column] = player
+            return True
+    return False
+
+def check_winner2(board, player):
+    for row in range(len(board)):
+        for col in range(len(board[0]) - 3):
+            if board[row][col] == player and board[row][col+1] == player and board[row][col+2] == player and board[row][col+3] == player:
+                return True
+
+    for col in range(len(board[0])):
+        for row in range(len(board) - 3):
+            if board[row][col] == player and board[row+1][col] == player and board[row+2][col] == player and board[row+3][col] == player:
+                return True
+
+    for row in range(len(board) - 3):
+        for col in range(len(board[0]) - 3):
+            if board[row][col] == player and board[row+1][col+1] == player and board[row+2][col+2] == player and board[row+3][col+3] == player:
+                return True
+
+    for row in range(len(board) - 3):
+        for col in range(3, len(board[0])):
+            if board[row][col] == player and board[row+1][col-1] == player and board[row+2][col-2] == player and board[row+3][col-3] == player:
+                return True
+
+    return False
+
+class State:
+    
+    def __init__(self):
+        # initialize the board info here and any additional variables
+        self.board = [[0]*NUM_COLS for i in range(NUM_ROWS)] # [[0,0,0,...], [0,0,0,...], ...] board initial state (all zeros)
+        self.column_heights = [NUM_ROWS - 1] * NUM_COLS # [5, 5, 5, 5, 5, 5, 5] useful to keep track of the index in which pieces should be inserted
+        self.available_moves = list(range(7)) # [0, 1, ..., 6] list of playable columns (not full)
+        self.player = 1
+        self.winner = -1
+        rows = 6
+        columns = 7
+        board = create_board(rows, columns)
+        print_board(board)
+        player1 = 'X'
+        player2='O'
+        current_player_index = player1
+        while True:
+            try:
+                if current_player_index == player2:
+                    #state.h1(board)
+                    #x = state.a_star()
+                    #print(x)
+                    x=3
+                    if x is not None:
+                        drop_piece(board, x, player2)
+                        print_board(board)
+                        if check_winner2(board, player2):
+                            print(f"O jogador 'O' venceu!")
+                            break
+                    current_player_index = player1
+                elif current_player_index == player1:
+                    column = int(input(f"Jogador 'X', escolha uma coluna (0-6): "))
+                    if 0 <= column < columns:
+                        if drop_piece(board, column, player1):
+                            print_board(board)
+                            if check_winner2(board, player1):
+                                print(f"O jogador 'X' venceu!")
+                                break
+                            current_player_index = player2
+                        else:
+                            print("Coluna cheia.")
+                    else:
+                        print("Escolha uma coluna válida (0-6).")
+            except ValueError:
+                print("Por favor, insira um número.")
+        
+
+    def check_line(self, n, player, values):
+        num_pieces = sum(list(map(lambda val: val == player, values)))
+        # code above is equivalent to
+        # num_pieces = 0
+        # for val in values:
+        #     if val == player:
+        #         num_pieces += 1
+        if n == 4:
+            return num_pieces == 4
+        if n == 3:
+            num_empty_spaces = sum(list(map(lambda val: val == 0, values)))
+            return num_pieces == 3 and num_empty_spaces == 1
+    def count_lines(self, n, player):
+        num_lines = 0
+        for row in range(NUM_ROWS):
+            for col in range(NUM_COLS):
+                # checks vertical line
+                if col < NUM_COLS - 3 and self.check_line(n, player, [self.board[row][col], self.board[row][col+1], self.board[row][col+2], self.board[row][col+3]]):
+                    num_lines += 1
+                # checks horizontal line
+                if row < NUM_ROWS - 3 and self.check_line(n, player, [self.board[row][col], self.board[row+1][col], self.board[row+2][col], self.board[row+3][col]]):
+                    num_lines += 1
+                # checks upper diagonal line
+                if row < NUM_ROWS - 3 and col < NUM_COLS - 3 and self.check_line(n, player, [self.board[row][col], self.board[row+1][col+1], self.board[row+2][col+2], self.board[row+3][col+3]]):
+                    num_lines += 1
+                # checks lower diagonal line
+                if row < NUM_ROWS - 3 and col > 3 and self.check_line(n, player, [self.board[row][col], self.board[row+1][col-1], self.board[row+2][col-2], self.board[row+3][col-3]]):
+                    num_lines += 1
+        return num_lines
+    def move(self, column): 
+        # function that performs a move given the column number and returns the new state
+        # do not forget to update the available moves list, column heights, pass the turn and check for winners
+        # your code here
+        #--------------------------------------------------#
+        state_copy = deepcopy(self)
+        
+        height = state_copy.column_heights[column]
+        state_copy.column_heights[column] = height
+        state_copy.board[height][column] = self.player
+        
+        if height == 0:
+            state_copy.available_moves.remove(column)
+        else:
+            state_copy.column_heights[column] = height - 1
+        
+        state_copy.update_winner() 
+        state_copy.player = 3 - self.player # update player turn
+        
+        return state_copy
+        #--------------------------------------------------#
+    
+    def update_winner(self):
+        # function that tests objective and update the winner accordingly
+        # your code here
+        #--------------------------------------------------#
+        if self.count_lines(4, 1) > 0:
+            self.winner = 1
+        elif self.count_lines(4, 2) > 0:
+            self.winner = 2
+        elif len(self.available_moves) == 0:
+            self.winner = 0
+    def check_winner(self):
+        # function that tests objective and update the winner accordingly
+        # your code here
+        #--------------------------------------------------#
+        if self.count_lines(4, 1) > 0:
+            return 1
+        elif self.count_lines(4, 2) > 0:
+            return  2
+        elif len(self.available_moves) == 0:
+            return 0
+    def check_friend(self,row, col, board,dr, dc):
+        count = 0
+        
+        if board[row][col] == 0:
+            return 0
+        try:
+            if(board[row][col] == board[row + dr][col + dc]):
+                return 1
+                
+        except IndexError:
+            pass
+        return count
+    
+    def count_friends(self, row, col, board,dr, dc):
+        count = 1
+        t = 0
+        try:
+            if(board[row][col] == 1 and board[row - dr][col - dc]==2 or board[row][col] == 2 and board[row - dr][col - dc]==1):
+                t = 1
+        except IndexError:
+            t =1
+        if board[row][col] == 0 or (dr==0 and dc ==0) :
+            return 0
+        try:
+            while board[row][col] == board[row + dr][col + dc]:
+                count += 1
+                row += dr
+                col += dc
+        except IndexError:
+            pass
+        if t ==1:
+            return count*-1
+        return count
+    def h1(self,board):
+        if(self.check_winner() == 1):
+            return 512
+        if(self.check_winner() == 2):
+            return -512
+        sum = 0
+        dr =[(1,-1),(1,0),(1,1),(0,1)]
+        up =[(-1,1),(-1,0),(-1,-1),(0,-1)]
+        for col in range(7):
+            for row in range(5):
+                t_sum = 0
+                c = 0
+                tdr = deepcopy(dr)
+                for t in range(4):
+                    n =self.check_friend(row,col,board,up[t][0],up[t][1])
+                    if(n==1):
+                        tdr[t] = (0,0)
+                        c =1
+                for i in range(4):
+                    n = self.count_friends(row,col,board,tdr[i][0],dr[i][1])
+                    if n == 2:
+                        if(board[row][col] == 1):
+                            t_sum +=10
+                        else:
+                            t_sum -=10
+                    if n == 3:
+                        if(board[row][col] == 1):
+                            t_sum +=50
+                        else:
+                            t_sum -=50
+                    if n == -2 or n == -3:
+                        if(board[row][col] == 1):
+                            t_sum -= n
+                        else:
+                            t_sum +=n
+                    
+                if(t_sum == 0 and c!= 1):
+                    if(board[row][col] == 1):
+                        t_sum = 1
+                    if(board[row][col] == 2):
+                        t_sum =-1
+                sum += t_sum
+        return sum
+    def a_star(self):
+        state_copy = deepcopy(self)
+        states = []
+        heapify(states)
+        bord =state_copy.board
+        bord2 = deepcopy(bord)
+        for i in range(7):
+             state2 = state_copy.move(i)
+             bord2 = state2.board
+             heuristica = state_copy.h1(bord2)
+             heappush(states,(heuristica,i))
+        x = heappop(states)
+        return x[1]
+state = State()
+#print(state.h1([[0,0,0,0,0,0,0],
+#                [0,0,0,0,0,0,0],
+ #              [0,0,0,0,0,0,0],
+#                [0,0,0,0,0,0,0],
+  #              [0,0,0,0,1,0,0]]))
+#x = state.a_star()
+#print(x)
